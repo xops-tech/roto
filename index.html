@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Schedule"/>
+<meta name="apple-mobile-web-app-title" content="Roto Scheduler"/>
 <meta name="theme-color" content="#3B82F6"/>
 <link rel="manifest" href="manifest.json"/>
-<title>My Daily Schedule</title>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<title>Roto Scheduler</title>
 <style>
   :root {
     --bg: #F8FAFC; --bg2: #fff; --bg3: #F1F5F9;
@@ -181,8 +182,8 @@
 
 <!-- TODAY PAGE -->
 <div class="page active" id="page-today">
-  <div class="header">
-    <h1 id="today-title">Today</h1>
+  <div class="header" style="padding: 0 16px;">
+    <img src="roto-logo.png" alt="Roto Scheduler" style="height:28px;object-fit:contain;flex:1;"/>
     <button class="icon-btn" onclick="openAddEventModal(null, getCurrentViewId())">＋</button>
   </div>
   <div style="padding:16px 16px 0">
@@ -195,7 +196,8 @@
 <!-- VIEWS PAGE -->
 <div class="page" id="page-views">
   <div class="header">
-    <h1>Views</h1>
+    <img src="roto-logo.png" alt="Roto" style="height:24px;object-fit:contain;margin-right:8px"/>
+    <h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Views</h1>
     <button class="icon-btn" onclick="openAddViewModal()">＋</button>
   </div>
   <div style="padding:16px">
@@ -206,13 +208,13 @@
 
 <!-- STATS PAGE -->
 <div class="page" id="page-stats">
-  <div class="header"><h1>Weekly Stats</h1></div>
+  <div class="header"><img src="roto-logo.png" alt="Roto" style="height:24px;object-fit:contain;margin-right:8px"/><h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Weekly Stats</h1></div>
   <div style="padding:16px" id="stats-content"></div>
 </div>
 
 <!-- SETTINGS PAGE -->
 <div class="page" id="page-settings">
-  <div class="header"><h1>Settings</h1></div>
+  <div class="header"><img src="roto-logo.png" alt="Roto" style="height:24px;object-fit:contain;margin-right:8px"/><h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Settings</h1></div>
   <div style="padding:16px">
     <div class="card">
       <div class="setting-row">
@@ -266,7 +268,8 @@
     </div>
 
     <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">
-      My Daily Schedule · DevOps Edition<br/>Hyderabad, IST (UTC+5:30)
+      <img src="roto-logo.png" alt="Roto" style="height:22px;margin-bottom:6px;display:block;margin-left:auto;margin-right:auto"/>
+Roto Scheduler · DevOps Edition<br/>Hyderabad, IST (UTC+5:30)
     </div>
   </div>
 </div>
