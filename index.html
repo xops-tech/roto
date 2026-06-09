@@ -573,25 +573,50 @@ function renderViews() {
           <button class="small-btn btn-edit" onclick="openEditViewModal('${view.id}')">Edit</button>
         </div>
       </div>
-      <div class="view-events">
-        ${view.events.slice(0,4).map(ev => {
+      <div class="view-events" id="ve-${view.id}">
+        ${view.events.map((ev, idx) => {
           const c = CAT_COLORS[ev.cat]||CAT_COLORS.personal;
-          return `<div class="event-item" style="background:${c.bg}">
+          const timeStr = ev.end ? `${formatTime(ev.start)} – ${formatTime(ev.end)}` : formatTime(ev.start);
+          return `<div class="event-item" style="background:${c.bg};${idx >= 4 ? 'display:none' : ''}" data-vid="${view.id}" data-vidx="${idx}">
             <span class="event-icon">${ev.icon}</span>
             <div class="event-info">
               <div class="event-name" style="color:${c.text}">${ev.name}</div>
-              <div class="event-time">${formatTime(ev.start)}${ev.end?' – '+formatTime(ev.end):''}</div>
+              <div class="event-time">${timeStr}</div>
+              <span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${c.bg};color:${c.text};border:1px solid ${c.border};margin-top:3px">${ev.cat}</span>
             </div>
-            <button class="small-btn btn-edit" onclick="openAddEventModal('${ev.id}','${view.id}')">✎</button>
+            <button class="small-btn btn-edit" onclick="openAddEventModal('${ev.id}','${view.id}')">✎ Edit</button>
           </div>`;
         }).join('')}
-        ${view.events.length > 4 ? `<div style="padding:10px 16px;font-size:13px;color:var(--text3)">+${view.events.length-4} more events</div>` : ''}
+        ${view.events.length > 4 ? `
         <div style="padding:10px 16px;border-top:1px solid var(--border)">
-          <button class="small-btn btn-edit" onclick="openAddEventModal(null,'${view.id}')" style="width:100%;text-align:center;padding:8px">＋ Add Event</button>
+          <button class="small-btn btn-edit" id="expand-btn-${view.id}" onclick="toggleExpandView('${view.id}',${view.events.length})" style="width:100%;text-align:center;padding:8px;font-size:13px">
+            ▼ Show all ${view.events.length} events
+          </button>
+        </div>` : ''}
+        <div style="padding:10px 16px;border-top:1px solid var(--border)">
+          <button class="small-btn btn-edit" onclick="openAddEventModal(null,'${view.id}')" style="width:100%;text-align:center;padding:8px">+ Add Event</button>
         </div>
       </div>
     </div>
   `).join('');
+}
+
+// ─── EXPAND/COLLAPSE VIEW EVENTS ─────────────────────────
+const expandedViews = {};
+function toggleExpandView(viewId, total) {
+  expandedViews[viewId] = !expandedViews[viewId];
+  const container = document.getElementById('ve-' + viewId);
+  if (!container) return;
+  const rows = container.querySelectorAll('[data-vid="' + viewId + '"]');
+  rows.forEach((row, idx) => {
+    if (idx >= 4) row.style.display = expandedViews[viewId] ? 'flex' : 'none';
+  });
+  const btn = document.getElementById('expand-btn-' + viewId);
+  if (btn) {
+    btn.textContent = expandedViews[viewId]
+      ? '▲ Show less'
+      : '▼ Show all ' + total + ' events';
+  }
 }
 
 // ─── STATS ────────────────────────────────────────────────
