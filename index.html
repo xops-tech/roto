@@ -299,7 +299,9 @@
 
     <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">
       <img src="roto-logo.png" alt="Roto" style="height:22px;margin-bottom:6px;display:block;margin-left:auto;margin-right:auto"/>
-Roto Scheduler · DevOps Edition<br/>Hyderabad, IST (UTC+5:30)
+      <div style="margin-top:4px">Developed with ❤️ by DevOps Pros</div>
+      <div style="margin-top:2px">📸 <a href="https://instagram.com/devops.pros" target="_blank" style="color:var(--accent);text-decoration:none">@devops.pros</a></div>
+      <div id="tz-display" style="margin-top:4px;font-size:11px;color:var(--text3)"></div>
     </div>
   </div>
 </div>
@@ -506,13 +508,25 @@ function saveState() {
 // ─── HELPERS ─────────────────────────────────────────────
 function uid() { return 'ev-' + Math.random().toString(36).slice(2,9); }
 
+// tz-safe: always use LOCAL date, never toISOString() which returns UTC
+function localDate(d) {
+  d = d || new Date();
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${yr}-${mo}-${dy}`;
+}
+
 function todayKey() {
-  const d = new Date();
-  return d.toISOString().split('T')[0];
+  return localDate();
 }
 
 function todayDayName() {
   return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+}
+
+function getUserTimezone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) { return 'Local Time'; }
 }
 
 function formatTime(t) {
@@ -546,7 +560,7 @@ function showPage(name) {
   if (name === 'today') renderToday();
   if (name === 'views') renderViews();
   if (name === 'stats') renderStats();
-  if (name === 'settings') renderSettings();
+  if (name === 'settings') { renderSettings(); renderTimezone(); }
   // FAB: show on today and views, hide on stats and settings
   const fab = document.getElementById('main-fab');
   if (fab) fab.style.display = (name === 'today' || name === 'views') ? 'flex' : 'none';
@@ -569,7 +583,7 @@ function renderToday() {
   const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const key = todayKey();
   const done = state.done[key] || {};
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = localDate(today);
   const allEvents = view ? view.events : [];
   const events = allEvents.filter(ev => {
     // Filter by days if set
@@ -726,7 +740,7 @@ function renderStats() {
   const weekDays = [];
   for (let i=6; i>=0; i--) {
     const d = new Date(); d.setDate(d.getDate()-i);
-    const dk = d.toISOString().split('T')[0];
+    const dk = localDate(d);
     const dayDone = state.done[dk] || {};
     const dayTotal = allViews.reduce((a,v)=>a+v.events.length,0);
     const dayDoneCount = Object.values(dayDone).filter(Boolean).length;
@@ -988,6 +1002,19 @@ function scheduleNotifications() {
 }
 
 // ─── INIT ─────────────────────────────────────────────────
+// Show detected timezone in footer
+function renderTimezone() {
+  const el = document.getElementById('tz-display');
+  if (el) {
+    const tz = getUserTimezone();
+    const offset = -new Date().getTimezoneOffset();
+    const sign = offset >= 0 ? '+' : '-';
+    const h = String(Math.floor(Math.abs(offset)/60)).padStart(2,'0');
+    const m = String(Math.abs(offset)%60).padStart(2,'0');
+    el.textContent = `🌍 ${tz} (UTC${sign}${h}:${m})`;
+  }
+}
+
 // Clear stale cache if views are missing or empty
 try {
   const saved = localStorage.getItem('schedule-pwa-state');
@@ -1002,6 +1029,7 @@ loadState();
 document.body.classList.toggle('dark', state.darkMode);
 renderToday();
 scheduleNotifications();
+renderTimezone();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
