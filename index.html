@@ -543,9 +543,16 @@ function getViewById(id) { return state.views.find(v => v.id === id); }
 
 function getViewForToday() {
   const day = todayDayName();
-  // Try to find a view that matches today's day
-  const match = state.views.find(v => v.days && v.days.includes(day));
-  return match || state.views.find(v => v.id === state.activeViewId) || state.views[0];
+  // Find all views that include today
+  const matches = state.views.filter(v => v.days && v.days.includes(day));
+  if (matches.length === 0) {
+    // No match - fall back to active view or first view
+    return state.views.find(v => v.id === state.activeViewId) || state.views[0];
+  }
+  // Prioritise the MOST SPECIFIC view (fewest days = most specific)
+  // e.g. "Tue & Fri" (2 days) beats "Mon–Fri" (5 days) on a Tuesday
+  matches.sort((a, b) => a.days.length - b.days.length);
+  return matches[0];
 }
 
 // ─── NAVIGATION ──────────────────────────────────────────
