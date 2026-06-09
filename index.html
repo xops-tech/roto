@@ -194,7 +194,7 @@
 <!-- TODAY PAGE -->
 <div class="page active" id="page-today">
   <div class="header">
-    <img src="roto-logo.png" alt="Roto Scheduler" style="height:28px;object-fit:contain;flex:1;"/>
+    <img src="roto-logo.png" alt="Roto Scheduler" style="height:26px;max-width:160px;object-fit:contain;object-position:left center;flex:1;display:block;"/>
     <span id="today-title" style="display:none"></span>
     <button class="icon-btn" onclick="openAddEventModal(null, getCurrentViewId())">＋</button>
   </div>
@@ -208,7 +208,7 @@
 <!-- VIEWS PAGE -->
 <div class="page" id="page-views">
   <div class="header">
-    <img src="roto-logo.png" alt="Roto" style="height:24px;object-fit:contain;margin-right:8px"/>
+    <img src="roto-logo.png" alt="Roto" style="height:22px;max-width:120px;object-fit:contain;object-position:left center;display:block;"/>
     <h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Views</h1>
     <button class="icon-btn" onclick="openAddViewModal()">＋</button>
   </div>
@@ -220,13 +220,13 @@
 
 <!-- STATS PAGE -->
 <div class="page" id="page-stats">
-  <div class="header"><img src="roto-logo.png" alt="Roto" style="height:24px;object-fit:contain;margin-right:8px"/><h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Weekly Stats</h1></div>
+  <div class="header"><img src="roto-logo.png" alt="Roto" style="height:22px;max-width:120px;object-fit:contain;object-position:left center;display:block;"/><h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Weekly Stats</h1></div>
   <div style="padding:16px" id="stats-content"></div>
 </div>
 
 <!-- SETTINGS PAGE -->
 <div class="page" id="page-settings">
-  <div class="header"><img src="roto-logo.png" alt="Roto" style="height:24px;object-fit:contain;margin-right:8px"/><h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Settings</h1></div>
+  <div class="header"><img src="roto-logo.png" alt="Roto" style="height:22px;max-width:120px;object-fit:contain;object-position:left center;display:block;"/><h1 style="flex:1;font-size:15px;color:var(--text2);font-weight:600">Settings</h1></div>
   <div style="padding:16px">
     <div class="card">
       <div class="setting-row">
@@ -301,14 +301,29 @@ Roto Scheduler · DevOps Edition<br/>Hyderabad, IST (UTC+5:30)
       <div class="icon-picker" id="icon-picker"></div>
     </div>
     <div class="form-group">
-      <label class="form-label">Start Time</label>
-      <input class="form-input" id="ev-start" type="time"/>
+      <label class="form-label">Repeat on Days</label>
+      <div class="cat-picker" id="ev-days-picker"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Leave empty to apply to all days in this view</div>
     </div>
     <div class="form-group">
-      <label class="form-label">End Time (optional)</label>
-      <input class="form-input" id="ev-end" type="time"/>
+      <label class="form-label">Start Date (optional)</label>
+      <input class="form-input" id="ev-start-date" type="date"/>
     </div>
     <div class="form-group">
+      <label class="form-label">End Date (optional)</label>
+      <input class="form-input" id="ev-end-date" type="date"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Start Time</label>
+        <input class="form-input" id="ev-start" type="time"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">End Time</label>
+        <input class="form-input" id="ev-end" type="time"/>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:16px">
       <label class="form-label">Category</label>
       <div class="cat-picker" id="cat-picker"></div>
     </div>
@@ -446,6 +461,7 @@ let state = {
   selectedReminder: 0,
   selectedColor: '#3B82F6',
   selectedDays: [],
+  selectedEventDays: [],
 };
 
 function loadState() {
@@ -513,12 +529,22 @@ function showPage(name) {
 function renderToday() {
   const view = getViewForToday();
   const today = new Date();
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const todayDay = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()];
+  const _days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const key = todayKey();
   const done = state.done[key] || {};
-
-  const events = view ? view.events : [];
+  const todayStr = today.toISOString().split('T')[0];
+  const allEvents = view ? view.events : [];
+  const events = allEvents.filter(ev => {
+    // Filter by days if set
+    if (ev.days && ev.days.length > 0 && !ev.days.includes(todayDay)) return false;
+    // Filter by start date if set
+    if (ev.startDate && todayStr < ev.startDate) return false;
+    // Filter by end date if set
+    if (ev.endDate && todayStr > ev.endDate) return false;
+    return true;
+  });
   const total = events.length;
   const doneCount = events.filter(e => done[e.id]).length;
   const pct = total ? Math.round((doneCount/total)*100) : 0;
@@ -528,8 +554,8 @@ function renderToday() {
   if (titleEl) titleEl.textContent = view ? view.name : 'Today';
   if (labelEl) labelEl.textContent = view ? view.name : 'Schedule';
   document.getElementById('date-strip').innerHTML = `
-    <div class="day">${days[today.getDay()]}</div>
-    <div class="date">${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}</div>
+    <div class="day">${_days[today.getDay()]}</div>
+    <div class="date">${today.getDate()} ${_months[today.getMonth()]} ${today.getFullYear()}</div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
     <div class="progress-label">${doneCount} of ${total} completed · ${pct}%</div>
   `;
@@ -770,6 +796,18 @@ function buildReminderPicker() {
     `<div class="reminder-opt ${r.val===state.selectedReminder?'selected':''}" onclick="selectReminder(${r.val})">${r.label}</div>`
   ).join('');
 }
+function buildEvDaysPicker() {
+  const el = document.getElementById('ev-days-picker');
+  if (!el) return;
+  el.innerHTML = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d =>
+    `<div class="cat-opt ${state.selectedEventDays.includes(d)?'selected':''}" onclick="toggleEvDay('${d}')">${d}</div>`
+  ).join('');
+}
+function toggleEvDay(d) {
+  if (state.selectedEventDays.includes(d)) state.selectedEventDays = state.selectedEventDays.filter(x=>x!==d);
+  else state.selectedEventDays.push(d);
+  buildEvDaysPicker();
+}
 function selectIcon(ic) { state.selectedIcon = ic; buildIconPicker(); }
 function selectCat(c) { state.selectedCat = c; buildCatPicker(); }
 function selectReminder(v) { state.selectedReminder = v; buildReminderPicker(); }
@@ -783,11 +821,14 @@ function openAddEventModal(evId, viewId) {
   document.getElementById('event-modal-title').textContent = ev ? 'Edit Event' : 'Add Event';
   document.getElementById('ev-name').value = ev ? ev.name : '';
   document.getElementById('ev-start').value = ev ? ev.start : '';
-  document.getElementById('ev-end').value = ev ? ev.end : '';
+  document.getElementById('ev-end').value = ev ? (ev.end||'') : '';
+  document.getElementById('ev-start-date').value = ev ? (ev.startDate||'') : '';
+  document.getElementById('ev-end-date').value = ev ? (ev.endDate||'') : '';
   state.selectedIcon = ev ? ev.icon : '📖';
   state.selectedCat = ev ? ev.cat : 'personal';
   state.selectedReminder = ev ? ev.reminder : 0;
-  buildIconPicker(); buildCatPicker(); buildReminderPicker();
+  state.selectedEventDays = ev ? (ev.days||[]) : [];
+  buildIconPicker(); buildCatPicker(); buildReminderPicker(); buildEvDaysPicker();
   document.getElementById('event-delete-btn').style.display = ev ? 'block' : 'none';
   openModal('event-modal');
 }
@@ -796,6 +837,9 @@ function saveEvent() {
   const name = document.getElementById('ev-name').value.trim();
   const start = document.getElementById('ev-start').value;
   const end = document.getElementById('ev-end').value;
+  const startDate = document.getElementById('ev-start-date').value;
+  const endDate = document.getElementById('ev-end-date').value;
+  const days = state.selectedEventDays;
   if (!name || !start) { alert('Please enter a name and start time.'); return; }
 
   const view = getViewById(state.editingViewId);
@@ -803,9 +847,9 @@ function saveEvent() {
 
   if (state.editingEventId) {
     const ev = view.events.find(e=>e.id===state.editingEventId);
-    if (ev) { ev.name=name; ev.icon=state.selectedIcon; ev.start=start; ev.end=end; ev.cat=state.selectedCat; ev.reminder=state.selectedReminder; }
+    if (ev) { ev.name=name; ev.icon=state.selectedIcon; ev.start=start; ev.end=end; ev.startDate=startDate; ev.endDate=endDate; ev.days=days; ev.cat=state.selectedCat; ev.reminder=state.selectedReminder; }
   } else {
-    view.events.push({ id:uid(), name, icon:state.selectedIcon, start, end, cat:state.selectedCat, reminder:state.selectedReminder });
+    view.events.push({ id:uid(), name, icon:state.selectedIcon, start, end, startDate, endDate, days, cat:state.selectedCat, reminder:state.selectedReminder });
   }
   // Sort by start time
   view.events.sort((a,b) => a.start.localeCompare(b.start));
