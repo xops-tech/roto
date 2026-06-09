@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Schedule"/>
+<meta name="theme-color" content="#3B82F6"/>
+<link rel="manifest" href="manifest.json"/>
+<title>My Daily Schedule</title>
+<style>
+  :root {
+    --bg: #F8FAFC; --bg2: #fff; --bg3: #F1F5F9;
+    --text: #0F172A; --text2: #475569; --text3: #94A3B8;
+    --border: #E2E8F0; --accent: #3B82F6; --accent2: #1D4ED8;
+    --green: #10B981; --purple: #8B5CF6; --orange: #F59E0B;
+    --red: #EF4444; --card: #fff;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+    --nav-h: 64px; --header-h: 56px;
+  }
+  .dark {
+    --bg: #0F172A; --bg2: #1E293B; --bg3: #334155;
+    --text: #F1F5F9; --text2: #94A3B8; --text3: #64748B;
+    --border: #334155; --card: #1E293B;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; transition: background 0.2s, color 0.2s; }
+
+  /* NAV */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h); background: var(--bg2); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: none; background: none; color: var(--text3); font-size: 10px; font-weight: 600; cursor: pointer; transition: color 0.2s; padding: 8px 0; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* HEADER */
+  .header { position: sticky; top: 0; z-index: 50; background: var(--bg2); border-bottom: 1px solid var(--border); height: var(--header-h); display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+  .header h1 { flex: 1; font-size: 18px; font-weight: 800; color: var(--text); }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--bg3); color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+  /* PAGES */
+  .page { display: none; padding: 16px; padding-bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
+  .card-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .card-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+
+  /* TODAY PAGE */
+  .date-strip { background: var(--accent); border-radius: 16px; padding: 16px; margin-bottom: 16px; color: white; }
+  .date-strip .day { font-size: 24px; font-weight: 800; }
+  .date-strip .date { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+  .progress-bar { background: rgba(255,255,255,0.3); border-radius: 999px; height: 6px; margin-top: 12px; }
+  .progress-fill { background: white; border-radius: 999px; height: 6px; transition: width 0.4s; }
+  .progress-label { font-size: 12px; opacity: 0.85; margin-top: 6px; }
+
+  .event-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .event-item:last-child { border-bottom: none; }
+  .event-item.done .event-name { text-decoration: line-through; opacity: 0.5; }
+  .event-icon { font-size: 22px; min-width: 32px; text-align: center; }
+  .event-info { flex: 1; min-width: 0; }
+  .event-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .event-time { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .event-cat { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-top: 3px; }
+  .check-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: transparent; transition: all 0.2s; font-size: 14px; flex-shrink: 0; }
+  .check-btn.checked { background: var(--green); border-color: var(--green); color: white; }
+
+  /* VIEWS PAGE */
+  .view-card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+  .view-header { padding: 14px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .view-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .view-name { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+  .view-count { font-size: 12px; color: var(--text3); }
+  .view-actions { display: flex; gap: 6px; }
+  .small-btn { padding: 5px 10px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-edit { background: var(--bg3); color: var(--text2); }
+  .btn-delete { background: #FEE2E2; color: var(--red); }
+  .view-events { border-top: 1px solid var(--border); }
+
+  .add-view-btn { width: 100%; padding: 14px; border-radius: 16px; border: 2px dashed var(--border); background: none; color: var(--accent); font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* STATS PAGE */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: var(--card); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 12px; color: var(--text3); margin-top: 4px; font-weight: 600; }
+  .bar-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .bar-row:last-child { border-bottom: none; }
+  .bar-label { font-size: 13px; color: var(--text2); width: 80px; flex-shrink: 0; }
+  .bar-track { flex: 1; background: var(--bg3); border-radius: 999px; height: 8px; }
+  .bar-fill { height: 8px; border-radius: 999px; transition: width 0.5s; }
+  .bar-val { font-size: 12px; color: var(--text3); width: 40px; text-align: right; flex-shrink: 0; }
+
+  /* SETTINGS PAGE */
+  .setting-row { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); gap: 12px; }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-icon { font-size: 20px; width: 32px; text-align: center; }
+  .setting-info { flex: 1; }
+  .setting-label { font-size: 14px; font-weight: 600; color: var(--text); }
+  .setting-desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .toggle { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 999px; cursor: pointer; transition: background 0.2s; }
+  .toggle-slider::before { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--bg2); border-radius: 24px 24px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); width: 100%; max-height: 90vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 999px; margin: 0 auto 20px; }
+  .modal-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 20px; }
+
+  /* FORM */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-input:focus { border-color: var(--accent); }
+  .icon-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .icon-opt { width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--border); background: var(--bg3); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+  .icon-opt.selected { border-color: var(--accent); background: #EFF6FF; }
+  .cat-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cat-opt { padding: 6px 14px; border-radius: 999px; border: 2px solid var(--border); background: var(--bg3); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .cat-opt.selected { border-color: var(--accent); background: var(--accent); color: white; }
+  .reminder-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .reminder-opt { padding: 6px 14px; border-radius: 999px; border: 2px solid var(--border); background: var(--bg3); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--text2); }
+  .reminder-opt.selected { border-color: var(--accent); background: var(--accent); color: white; }
+
+  .btn-primary { width: 100%; padding: 14px; border-radius: 14px; border: none; background: var(--accent); color: white; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-secondary { width: 100%; padding: 14px; border-radius: 14px; border: 1.5px solid var(--border); background: none; color: var(--text2); font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-danger { background: var(--red); color: white; }
+
+  /* COLOR PICKER */
+  .color-picker { display: flex; flex-wrap: wrap; gap: 10px; }
+  .color-opt { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: border-color 0.15s; }
+  .color-opt.selected { border-color: var(--text); }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 40px 20px; color: var(--text3); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; font-weight: 600; }
+  .empty-sub { font-size: 13px; margin-top: 6px; }
+
+  /* DRAG */
+  .dragging { opacity: 0.5; }
+  .drag-handle { color: var(--text3); font-size: 16px; cursor: grab; padding: 0 4px; }
+
+  /* SECTION LABEL */
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); padding: 8px 0 4px; }
+
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+
+  select.form-input { appearance: none; }
+</style>
+</head>
+<body>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showPage('today')" id="nav-today">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Today
+  </button>
+  <button class="nav-btn" onclick="showPage('views')" id="nav-views">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Views
+  </button>
+  <button class="nav-btn" onclick="showPage('stats')" id="nav-stats">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Stats
+  </button>
+  <button class="nav-btn" onclick="showPage('settings')" id="nav-settings">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- TODAY PAGE -->
+<div class="page active" id="page-today">
+  <div class="header">
+    <h1 id="today-title">Today</h1>
+    <button class="icon-btn" onclick="openAddEventModal(null, getCurrentViewId())">＋</button>
+  </div>
+  <div style="padding:16px 16px 0">
+    <div class="date-strip" id="date-strip"></div>
+    <div class="section-label">Schedule</div>
+  </div>
+  <div id="today-events"></div>
+</div>
+
+<!-- VIEWS PAGE -->
+<div class="page" id="page-views">
+  <div class="header">
+    <h1>Views</h1>
+    <button class="icon-btn" onclick="openAddViewModal()">＋</button>
+  </div>
+  <div style="padding:16px">
+    <div id="views-list"></div>
+    <button class="add-view-btn" onclick="openAddViewModal()">＋ Add New View</button>
+  </div>
+</div>
+
+<!-- STATS PAGE -->
+<div class="page" id="page-stats">
+  <div class="header"><h1>Weekly Stats</h1></div>
+  <div style="padding:16px" id="stats-content"></div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+  <div class="header"><h1>Settings</h1></div>
+  <div style="padding:16px">
+    <div class="card">
+      <div class="setting-row">
+        <span class="setting-icon">🌙</span>
+        <div class="setting-info">
+          <div class="setting-label">Dark Mode</div>
+          <div class="setting-desc">Easy on the eyes at night</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="dark-toggle" onchange="toggleDark()"/><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <span class="setting-icon">🔔</span>
+        <div class="setting-info">
+          <div class="setting-label">Notifications</div>
+          <div class="setting-desc">Event reminders</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="notif-toggle" onchange="toggleNotif()"/><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <span class="setting-icon">🔄</span>
+        <div class="setting-info">
+          <div class="setting-label">Reset Today's Progress</div>
+          <div class="setting-desc">Uncheck all completed events</div>
+        </div>
+        <button class="small-btn btn-edit" onclick="resetToday()">Reset</button>
+      </div>
+    </div>
+
+    <div class="section-label">Default View</div>
+    <div class="card">
+      <div class="setting-row">
+        <span class="setting-icon">📅</span>
+        <div class="setting-info">
+          <div class="setting-label">Active View for Today</div>
+          <div class="setting-desc">Which view shows on Today tab</div>
+        </div>
+        <select class="form-input" style="width:auto;padding:6px 10px;font-size:13px" id="active-view-select" onchange="setActiveView(this.value)"></select>
+      </div>
+    </div>
+
+    <div class="section-label">Data</div>
+    <div class="card">
+      <div class="setting-row">
+        <span class="setting-icon">🗑️</span>
+        <div class="setting-info">
+          <div class="setting-label">Reset All Data</div>
+          <div class="setting-desc">Restore default schedule</div>
+        </div>
+        <button class="small-btn btn-delete" onclick="resetAll()">Reset</button>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">
+      My Daily Schedule · DevOps Edition<br/>Hyderabad, IST (UTC+5:30)
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- Add/Edit Event Modal -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="event-modal-title">Add Event</div>
+    <div class="form-group">
+      <label class="form-label">Event Name</label>
+      <input class="form-input" id="ev-name" type="text" placeholder="e.g. Morning Walk"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="icon-picker" id="icon-picker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Start Time</label>
+      <input class="form-input" id="ev-start" type="time"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">End Time (optional)</label>
+      <input class="form-input" id="ev-end" type="time"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <div class="cat-picker" id="cat-picker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reminder</label>
+      <div class="reminder-picker" id="reminder-picker"></div>
+    </div>
+    <button class="btn-primary" id="event-save-btn" onclick="saveEvent()">Save Event</button>
+    <button class="btn-secondary" onclick="closeModal('event-modal')">Cancel</button>
+    <button class="btn-secondary btn-danger" id="event-delete-btn" onclick="deleteEvent()" style="display:none">Delete Event</button>
+  </div>
+</div>
+
+<!-- Add/Edit View Modal -->
+<div class="modal-overlay" id="view-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="view-modal-title">New View</div>
+    <div class="form-group">
+      <label class="form-label">View Name</label>
+      <input class="form-input" id="vw-name" type="text" placeholder="e.g. Tuesday & Friday"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Colour</label>
+      <div class="color-picker" id="color-picker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Days</label>
+      <div class="cat-picker" id="days-picker"></div>
+    </div>
+    <button class="btn-primary" id="view-save-btn" onclick="saveView()">Save View</button>
+    <button class="btn-secondary" onclick="closeModal('view-modal')">Cancel</button>
+    <button class="btn-secondary btn-danger" id="view-delete-btn" onclick="deleteView()" style="display:none">Delete View</button>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ──────────────────────────────────────────
+const ICONS = ['🚶','🏃','🏋️','🧘','🚴','🍳','🍽️','☕','🥤','📖','💻','💼','🎙️','🌙','😴','🚿','🛁','🎯','🎮','📱','🎵','🌿','✍️','🧠','💊','🩺','🛒','🚗','✈️','🏠'];
+const CATS = ['health','work','freelance','meal','personal','sleep'];
+const CAT_COLORS = {
+  health:   {bg:'#DCFCE7',text:'#166534',border:'#86EFAC',bar:'#22C55E'},
+  work:     {bg:'#EFF6FF',text:'#1E40AF',border:'#BFDBFE',bar:'#3B82F6'},
+  freelance:{bg:'#FAF5FF',text:'#6B21A8',border:'#DDD6FE',bar:'#8B5CF6'},
+  meal:     {bg:'#FFF7ED',text:'#9A3412',border:'#FED7AA',bar:'#F97316'},
+  personal: {bg:'#F0F9FF',text:'#075985',border:'#BAE6FD',bar:'#0EA5E9'},
+  sleep:    {bg:'#F1F5F9',text:'#334155',border:'#CBD5E1',bar:'#64748B'},
+};
+const COLORS = ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EF4444','#EC4899','#06B6D4','#84CC16','#F97316','#6366F1'];
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const REMINDERS = [
+  {label:'None',val:0},{label:'5 min',val:5},{label:'10 min',val:10},
+  {label:'15 min',val:15},{label:'30 min',val:30},{label:'1 hour',val:60}
+];
+
+// ─── DEFAULT DATA ────────────────────────────────────────
+const DEFAULT_VIEWS = [
+  {
+    id:'view-weekday', name:'Mon–Fri (Regular)', color:'#3B82F6',
+    days:['Mon','Tue','Wed','Thu','Fri'],
+    events:[
+      {id:'e1',name:'Morning Walk',icon:'🚶',start:'06:30',end:'07:00',cat:'health',reminder:10},
+      {id:'e2',name:'Freshen Up',icon:'🚿',start:'07:00',end:'07:30',cat:'personal',reminder:0},
+      {id:'e3',name:'Breakfast',icon:'🍳',start:'07:30',end:'08:00',cat:'meal',reminder:5},
+      {id:'e4',name:'Morning Reading',icon:'📖',start:'08:00',end:'08:30',cat:'personal',reminder:5},
+      {id:'e5',name:'Stretching Exercise',icon:'🧘',start:'08:30',end:'09:00',cat:'health',reminder:5},
+      {id:'e6',name:'Gym',icon:'🏋️',start:'09:00',end:'10:00',cat:'health',reminder:10},
+      {id:'e7',name:'Freshen Up / Snack',icon:'🥤',start:'10:00',end:'10:30',cat:'personal',reminder:0},
+      {id:'e8',name:'Work Block 1',icon:'💻',start:'10:30',end:'13:30',cat:'work',reminder:5},
+      {id:'e9',name:'Lunch Break',icon:'🍽️',start:'13:30',end:'14:00',cat:'meal',reminder:10},
+      {id:'e10',name:'Work Block 2',icon:'💻',start:'14:00',end:'19:00',cat:'work',reminder:5},
+      {id:'e11',name:'Dinner Break',icon:'🍽️',start:'19:00',end:'19:30',cat:'meal',reminder:10},
+      {id:'e12',name:'Freelance Work',icon:'💼',start:'19:30',end:'20:30',cat:'freelance',reminder:5},
+      {id:'e13',name:'Evening Reading',icon:'📖',start:'20:30',end:'21:00',cat:'personal',reminder:5},
+      {id:'e14',name:'Wind Down',icon:'🌙',start:'21:30',end:'22:00',cat:'personal',reminder:10},
+      {id:'e15',name:'Sleep',icon:'😴',start:'22:00',end:'',cat:'sleep',reminder:0},
+    ]
+  },
+  {
+    id:'view-meeting', name:'Tue & Fri (Meetings)', color:'#8B5CF6',
+    days:['Tue','Fri'],
+    events:[
+      {id:'f1',name:'Morning Walk',icon:'🚶',start:'06:30',end:'07:00',cat:'health',reminder:10},
+      {id:'f2',name:'Freshen Up',icon:'🚿',start:'07:00',end:'07:30',cat:'personal',reminder:0},
+      {id:'f3',name:'Breakfast',icon:'🍳',start:'07:30',end:'08:00',cat:'meal',reminder:5},
+      {id:'f4',name:'Morning Reading',icon:'📖',start:'08:00',end:'08:30',cat:'personal',reminder:5},
+      {id:'f5',name:'Stretching Exercise',icon:'🧘',start:'08:30',end:'09:00',cat:'health',reminder:5},
+      {id:'f6',name:'Gym',icon:'🏋️',start:'09:00',end:'10:00',cat:'health',reminder:10},
+      {id:'f7',name:'Freshen Up / Snack',icon:'🥤',start:'10:00',end:'10:30',cat:'personal',reminder:0},
+      {id:'f8',name:'Work Block 1',icon:'💻',start:'10:30',end:'13:30',cat:'work',reminder:5},
+      {id:'f9',name:'Lunch Break',icon:'🍽️',start:'13:30',end:'14:00',cat:'meal',reminder:10},
+      {id:'f10',name:'Work Block 2',icon:'💻',start:'14:00',end:'18:30',cat:'work',reminder:5},
+      {id:'f11',name:'Personal Time',icon:'🌿',start:'18:30',end:'19:00',cat:'personal',reminder:0},
+      {id:'f12',name:'Dinner Break',icon:'🍽️',start:'19:00',end:'19:30',cat:'meal',reminder:10},
+      {id:'f13',name:'Freelance Work',icon:'💼',start:'19:30',end:'20:30',cat:'freelance',reminder:5},
+      {id:'f14',name:'Evening Reading',icon:'📖',start:'20:30',end:'21:00',cat:'personal',reminder:5},
+      {id:'f15',name:'Meeting',icon:'🎙️',start:'21:00',end:'21:30',cat:'work',reminder:15},
+      {id:'f16',name:'Wind Down',icon:'🌙',start:'21:30',end:'22:00',cat:'personal',reminder:0},
+      {id:'f17',name:'Sleep',icon:'😴',start:'22:00',end:'',cat:'sleep',reminder:0},
+    ]
+  },
+  {
+    id:'view-weekend', name:'Weekend', color:'#10B981',
+    days:['Sat','Sun'],
+    events:[
+      {id:'w1',name:'Morning Walk',icon:'🚶',start:'06:30',end:'07:00',cat:'health',reminder:10},
+      {id:'w2',name:'Freshen Up',icon:'🚿',start:'07:00',end:'07:30',cat:'personal',reminder:0},
+      {id:'w3',name:'Breakfast',icon:'🍳',start:'07:30',end:'08:00',cat:'meal',reminder:5},
+      {id:'w4',name:'Morning Reading',icon:'📖',start:'08:00',end:'08:30',cat:'personal',reminder:5},
+      {id:'w5',name:'Stretching Exercise',icon:'🧘',start:'08:30',end:'09:00',cat:'health',reminder:5},
+      {id:'w6',name:'Free Time',icon:'🌿',start:'09:00',end:'10:30',cat:'personal',reminder:0},
+      {id:'w7',name:'Freelance Work',icon:'💼',start:'10:30',end:'13:00',cat:'freelance',reminder:10},
+      {id:'w8',name:'Lunch Break',icon:'🍽️',start:'13:00',end:'13:30',cat:'meal',reminder:10},
+      {id:'w9',name:'Free Time / Rest',icon:'🌿',start:'13:30',end:'19:00',cat:'personal',reminder:0},
+      {id:'w10',name:'Dinner Break',icon:'🍽️',start:'19:00',end:'19:30',cat:'meal',reminder:10},
+      {id:'w11',name:'Free Time',icon:'🌿',start:'19:30',end:'20:30',cat:'personal',reminder:0},
+      {id:'w12',name:'Evening Reading',icon:'📖',start:'20:30',end:'21:00',cat:'personal',reminder:5},
+      {id:'w13',name:'Wind Down',icon:'🌙',start:'21:30',end:'22:00',cat:'personal',reminder:10},
+      {id:'w14',name:'Sleep',icon:'😴',start:'22:00',end:'',cat:'sleep',reminder:0},
+    ]
+  }
+];
+
+// ─── STATE ───────────────────────────────────────────────
+let state = {
+  views: [],
+  activeViewId: 'view-weekday',
+  done: {}, // { 'YYYY-MM-DD': { eventId: true } }
+  darkMode: false,
+  notificationsEnabled: false,
+  editingEventId: null,
+  editingViewId: null,
+  selectedIcon: '📖',
+  selectedCat: 'personal',
+  selectedReminder: 0,
+  selectedColor: '#3B82F6',
+  selectedDays: [],
+};
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('schedule-pwa-state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    } else {
+      state.views = JSON.parse(JSON.stringify(DEFAULT_VIEWS));
+    }
+  } catch(e) {
+    state.views = JSON.parse(JSON.stringify(DEFAULT_VIEWS));
+  }
+}
+
+function saveState() {
+  localStorage.setItem('schedule-pwa-state', JSON.stringify(state));
+}
+
+// ─── HELPERS ─────────────────────────────────────────────
+function uid() { return 'ev-' + Math.random().toString(36).slice(2,9); }
+
+function todayKey() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+function todayDayName() {
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+}
+
+function formatTime(t) {
+  if (!t) return '';
+  const [h,m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`;
+}
+
+function getCurrentViewId() { return state.activeViewId; }
+
+function getViewById(id) { return state.views.find(v => v.id === id); }
+
+function getViewForToday() {
+  const day = todayDayName();
+  // Try to find a view that matches today's day
+  const match = state.views.find(v => v.days && v.days.includes(day));
+  return match || state.views.find(v => v.id === state.activeViewId) || state.views[0];
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'today') renderToday();
+  if (name === 'views') renderViews();
+  if (name === 'stats') renderStats();
+  if (name === 'settings') renderSettings();
+}
+
+// ─── TODAY ────────────────────────────────────────────────
+function renderToday() {
+  const view = getViewForToday();
+  const today = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const key = todayKey();
+  const done = state.done[key] || {};
+
+  const events = view ? view.events : [];
+  const total = events.length;
+  const doneCount = events.filter(e => done[e.id]).length;
+  const pct = total ? Math.round((doneCount/total)*100) : 0;
+
+  document.getElementById('today-title').textContent = view ? view.name : 'Today';
+  document.getElementById('date-strip').innerHTML = `
+    <div class="day">${days[today.getDay()]}</div>
+    <div class="date">${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="progress-label">${doneCount} of ${total} completed · ${pct}%</div>
+  `;
+  document.getElementById('date-strip').style.background = view ? view.color : '#3B82F6';
+
+  const container = document.getElementById('today-events');
+  if (!events.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No events yet</div><div class="empty-sub">Tap ＋ to add your first event</div></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="card">${events.map(ev => {
+    const c = CAT_COLORS[ev.cat] || CAT_COLORS.personal;
+    const isDone = !!done[ev.id];
+    const timeStr = ev.end ? `${formatTime(ev.start)} – ${formatTime(ev.end)}` : formatTime(ev.start);
+    return `
+      <div class="event-item ${isDone?'done':''}" id="ei-${ev.id}">
+        <span class="event-icon">${ev.icon}</span>
+        <div class="event-info">
+          <div class="event-name">${ev.name}</div>
+          <div class="event-time">${timeStr}</div>
+          <span class="event-cat chip" style="background:${c.bg};color:${c.text}">${ev.cat}</span>
+          ${ev.reminder ? `<span class="chip" style="background:var(--bg3);color:var(--text3);margin-left:4px">🔔 ${REMINDERS.find(r=>r.val===ev.reminder)?.label||''}</span>` : ''}
+        </div>
+        <button class="check-btn ${isDone?'checked':''}" onclick="toggleDone('${ev.id}','${view.id}')">${isDone?'✓':''}</button>
+      </div>`;
+  }).join('')}</div>`;
+}
+
+function toggleDone(evId, viewId) {
+  const key = todayKey();
+  if (!state.done[key]) state.done[key] = {};
+  state.done[key][evId] = !state.done[key][evId];
+  saveState();
+  renderToday();
+}
+
+function resetToday() {
+  if (!confirm('Reset today\'s progress?')) return;
+  delete state.done[todayKey()];
+  saveState();
+  renderToday();
+}
+
+// ─── VIEWS ────────────────────────────────────────────────
+function renderViews() {
+  const container = document.getElementById('views-list');
+  if (!state.views.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No views yet</div></div>`;
+    return;
+  }
+  container.innerHTML = state.views.map(view => `
+    <div class="view-card">
+      <div class="view-header">
+        <div class="view-dot" style="background:${view.color}"></div>
+        <span class="view-name">${view.name}</span>
+        <span class="view-count">${view.events.length} events</span>
+        <div class="view-actions">
+          <button class="small-btn btn-edit" onclick="openEditViewModal('${view.id}')">Edit</button>
+        </div>
+      </div>
+      <div class="view-events">
+        ${view.events.slice(0,4).map(ev => {
+          const c = CAT_COLORS[ev.cat]||CAT_COLORS.personal;
+          return `<div class="event-item" style="background:${c.bg}">
+            <span class="event-icon">${ev.icon}</span>
+            <div class="event-info">
+              <div class="event-name" style="color:${c.text}">${ev.name}</div>
+              <div class="event-time">${formatTime(ev.start)}${ev.end?' – '+formatTime(ev.end):''}</div>
+            </div>
+            <button class="small-btn btn-edit" onclick="openAddEventModal('${ev.id}','${view.id}')">✎</button>
+          </div>`;
+        }).join('')}
+        ${view.events.length > 4 ? `<div style="padding:10px 16px;font-size:13px;color:var(--text3)">+${view.events.length-4} more events</div>` : ''}
+        <div style="padding:10px 16px;border-top:1px solid var(--border)">
+          <button class="small-btn btn-edit" onclick="openAddEventModal(null,'${view.id}')" style="width:100%;text-align:center;padding:8px">＋ Add Event</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── STATS ────────────────────────────────────────────────
+function renderStats() {
+  const key = todayKey();
+  const done = state.done[key] || {};
+  const allViews = state.views;
+  let totalEvents = 0, doneEvents = 0;
+  const catMinutes = {};
+
+  allViews.forEach(view => {
+    view.events.forEach(ev => {
+      totalEvents++;
+      if (done[ev.id]) doneEvents++;
+      if (ev.start && ev.end) {
+        const [sh,sm] = ev.start.split(':').map(Number);
+        const [eh,em] = ev.end.split(':').map(Number);
+        const mins = (eh*60+em) - (sh*60+sm);
+        if (mins > 0) catMinutes[ev.cat] = (catMinutes[ev.cat]||0) + mins;
+      }
+    });
+  });
+
+  const pct = totalEvents ? Math.round((doneEvents/totalEvents)*100) : 0;
+  const maxMins = Math.max(...Object.values(catMinutes), 1);
+
+  // Weekly completion (last 7 days)
+  const weekDays = [];
+  for (let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const dk = d.toISOString().split('T')[0];
+    const dayDone = state.done[dk] || {};
+    const dayTotal = allViews.reduce((a,v)=>a+v.events.length,0);
+    const dayDoneCount = Object.values(dayDone).filter(Boolean).length;
+    weekDays.push({ label: ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()], pct: dayTotal ? Math.round((dayDoneCount/dayTotal)*100) : 0 });
+  }
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num">${doneEvents}</div><div class="stat-label">Done Today</div></div>
+      <div class="stat-card"><div class="stat-num">${pct}%</div><div class="stat-label">Completion</div></div>
+      <div class="stat-card"><div class="stat-num">${totalEvents}</div><div class="stat-label">Total Events</div></div>
+      <div class="stat-card"><div class="stat-num">${state.views.length}</div><div class="stat-label">Views</div></div>
+    </div>
+
+    <div class="section-label">This Week</div>
+    <div class="card" style="padding:16px">
+      <div style="display:flex;gap:6px;align-items:flex-end;height:80px;margin-bottom:8px">
+        ${weekDays.map(d=>`
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+              <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:${d.pct}%;min-height:${d.pct>0?4:0}px;opacity:${d.pct>0?1:0.2}"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);font-weight:600">${d.label}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="section-label">Time by Category</div>
+    <div class="card" style="padding:12px 16px">
+      ${Object.entries(catMinutes).sort((a,b)=>b[1]-a[1]).map(([cat,mins])=>{
+        const c = CAT_COLORS[cat]||CAT_COLORS.personal;
+        const hrs = (mins/60).toFixed(1);
+        return `<div class="bar-row">
+          <div class="bar-label" style="color:${c.text}">${cat}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round((mins/maxMins)*100)}%;background:${c.bar}"></div></div>
+          <div class="bar-val">${hrs}h</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ─── SETTINGS ────────────────────────────────────────────
+function renderSettings() {
+  document.getElementById('dark-toggle').checked = state.darkMode;
+  document.getElementById('notif-toggle').checked = state.notificationsEnabled;
+  const sel = document.getElementById('active-view-select');
+  sel.innerHTML = state.views.map(v => `<option value="${v.id}" ${v.id===state.activeViewId?'selected':''}>${v.name}</option>`).join('');
+}
+
+function toggleDark() {
+  state.darkMode = document.getElementById('dark-toggle').checked;
+  document.body.classList.toggle('dark', state.darkMode);
+  saveState();
+}
+
+function toggleNotif() {
+  state.notificationsEnabled = document.getElementById('notif-toggle').checked;
+  if (state.notificationsEnabled && Notification.permission !== 'granted') {
+    Notification.requestPermission();
+  }
+  saveState();
+}
+
+function setActiveView(id) {
+  state.activeViewId = id;
+  saveState();
+}
+
+function resetAll() {
+  if (!confirm('Reset ALL data to defaults? This cannot be undone.')) return;
+  localStorage.removeItem('schedule-pwa-state');
+  loadState();
+  state.views = JSON.parse(JSON.stringify(DEFAULT_VIEWS));
+  saveState();
+  renderToday();
+  alert('Reset complete!');
+}
+
+// ─── MODALS ───────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// EVENT MODAL
+function buildIconPicker() {
+  document.getElementById('icon-picker').innerHTML = ICONS.map(ic =>
+    `<div class="icon-opt ${ic===state.selectedIcon?'selected':''}" onclick="selectIcon('${ic}')">${ic}</div>`
+  ).join('');
+}
+function buildCatPicker() {
+  document.getElementById('cat-picker').innerHTML = CATS.map(c =>
+    `<div class="cat-opt ${c===state.selectedCat?'selected':''}" onclick="selectCat('${c}')">${c}</div>`
+  ).join('');
+}
+function buildReminderPicker() {
+  document.getElementById('reminder-picker').innerHTML = REMINDERS.map(r =>
+    `<div class="reminder-opt ${r.val===state.selectedReminder?'selected':''}" onclick="selectReminder(${r.val})">${r.label}</div>`
+  ).join('');
+}
+function selectIcon(ic) { state.selectedIcon = ic; buildIconPicker(); }
+function selectCat(c) { state.selectedCat = c; buildCatPicker(); }
+function selectReminder(v) { state.selectedReminder = v; buildReminderPicker(); }
+
+function openAddEventModal(evId, viewId) {
+  state.editingEventId = evId;
+  state.editingViewId = viewId;
+  const view = getViewById(viewId);
+  const ev = evId && view ? view.events.find(e=>e.id===evId) : null;
+
+  document.getElementById('event-modal-title').textContent = ev ? 'Edit Event' : 'Add Event';
+  document.getElementById('ev-name').value = ev ? ev.name : '';
+  document.getElementById('ev-start').value = ev ? ev.start : '';
+  document.getElementById('ev-end').value = ev ? ev.end : '';
+  state.selectedIcon = ev ? ev.icon : '📖';
+  state.selectedCat = ev ? ev.cat : 'personal';
+  state.selectedReminder = ev ? ev.reminder : 0;
+  buildIconPicker(); buildCatPicker(); buildReminderPicker();
+  document.getElementById('event-delete-btn').style.display = ev ? 'block' : 'none';
+  openModal('event-modal');
+}
+
+function saveEvent() {
+  const name = document.getElementById('ev-name').value.trim();
+  const start = document.getElementById('ev-start').value;
+  const end = document.getElementById('ev-end').value;
+  if (!name || !start) { alert('Please enter a name and start time.'); return; }
+
+  const view = getViewById(state.editingViewId);
+  if (!view) return;
+
+  if (state.editingEventId) {
+    const ev = view.events.find(e=>e.id===state.editingEventId);
+    if (ev) { ev.name=name; ev.icon=state.selectedIcon; ev.start=start; ev.end=end; ev.cat=state.selectedCat; ev.reminder=state.selectedReminder; }
+  } else {
+    view.events.push({ id:uid(), name, icon:state.selectedIcon, start, end, cat:state.selectedCat, reminder:state.selectedReminder });
+  }
+  // Sort by start time
+  view.events.sort((a,b) => a.start.localeCompare(b.start));
+  saveState();
+  closeModal('event-modal');
+  renderToday(); renderViews();
+}
+
+function deleteEvent() {
+  if (!confirm('Delete this event?')) return;
+  const view = getViewById(state.editingViewId);
+  if (view) view.events = view.events.filter(e=>e.id!==state.editingEventId);
+  saveState();
+  closeModal('event-modal');
+  renderToday(); renderViews();
+}
+
+// VIEW MODAL
+function buildColorPicker() {
+  document.getElementById('color-picker').innerHTML = COLORS.map(c =>
+    `<div class="color-opt ${c===state.selectedColor?'selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`
+  ).join('');
+}
+function buildDaysPicker() {
+  document.getElementById('days-picker').innerHTML = DAYS.map(d =>
+    `<div class="cat-opt ${state.selectedDays.includes(d)?'selected':''}" onclick="toggleDay('${d}')">${d}</div>`
+  ).join('');
+}
+function selectColor(c) { state.selectedColor = c; buildColorPicker(); }
+function toggleDay(d) {
+  if (state.selectedDays.includes(d)) state.selectedDays = state.selectedDays.filter(x=>x!==d);
+  else state.selectedDays.push(d);
+  buildDaysPicker();
+}
+
+function openAddViewModal() {
+  state.editingViewId = null;
+  state.selectedColor = '#3B82F6';
+  state.selectedDays = [];
+  document.getElementById('view-modal-title').textContent = 'New View';
+  document.getElementById('vw-name').value = '';
+  document.getElementById('view-delete-btn').style.display = 'none';
+  buildColorPicker(); buildDaysPicker();
+  openModal('view-modal');
+}
+
+function openEditViewModal(viewId) {
+  const view = getViewById(viewId);
+  if (!view) return;
+  state.editingViewId = viewId;
+  state.selectedColor = view.color;
+  state.selectedDays = [...(view.days||[])];
+  document.getElementById('view-modal-title').textContent = 'Edit View';
+  document.getElementById('vw-name').value = view.name;
+  document.getElementById('view-delete-btn').style.display = 'block';
+  buildColorPicker(); buildDaysPicker();
+  openModal('view-modal');
+}
+
+function saveView() {
+  const name = document.getElementById('vw-name').value.trim();
+  if (!name) { alert('Please enter a view name.'); return; }
+  if (state.editingViewId) {
+    const view = getViewById(state.editingViewId);
+    if (view) { view.name=name; view.color=state.selectedColor; view.days=state.selectedDays; }
+  } else {
+    state.views.push({ id:uid(), name, color:state.selectedColor, days:state.selectedDays, events:[] });
+  }
+  saveState();
+  closeModal('view-modal');
+  renderViews(); renderSettings();
+}
+
+function deleteView() {
+  if (state.views.length <= 1) { alert('You must have at least one view.'); return; }
+  if (!confirm('Delete this view and all its events?')) return;
+  state.views = state.views.filter(v=>v.id!==state.editingViewId);
+  if (state.activeViewId === state.editingViewId) state.activeViewId = state.views[0].id;
+  saveState();
+  closeModal('view-modal');
+  renderViews(); renderSettings();
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────
+function scheduleNotifications() {
+  if (!state.notificationsEnabled || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const view = getViewForToday();
+  if (!view) return;
+  view.events.forEach(ev => {
+    if (!ev.reminder || ev.reminder === 0) return;
+    const [h,m] = ev.start.split(':').map(Number);
+    const evTime = new Date(); evTime.setHours(h, m-ev.reminder, 0, 0);
+    const diff = evTime - now;
+    if (diff > 0 && diff < 3600000) {
+      setTimeout(() => {
+        new Notification(`⏰ ${ev.name} in ${ev.reminder} min`, { body: `Starting at ${formatTime(ev.start)}`, icon: 'icons/icon-192.png' });
+      }, diff);
+    }
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+loadState();
+document.body.classList.toggle('dark', state.darkMode);
+renderToday();
+scheduleNotifications();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
