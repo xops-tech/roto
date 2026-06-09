@@ -184,11 +184,12 @@
 <div class="page active" id="page-today">
   <div class="header" style="padding: 0 16px;">
     <img src="roto-logo.png" alt="Roto Scheduler" style="height:28px;object-fit:contain;flex:1;"/>
+    <span id="today-title" style="display:none"></span>
     <button class="icon-btn" onclick="openAddEventModal(null, getCurrentViewId())">＋</button>
   </div>
   <div style="padding:16px 16px 0">
     <div class="date-strip" id="date-strip"></div>
-    <div class="section-label">Schedule</div>
+    <div class="section-label" id="today-view-label" style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:8px 0 4px"></div>
   </div>
   <div id="today-events"></div>
 </div>
@@ -511,7 +512,10 @@ function renderToday() {
   const doneCount = events.filter(e => done[e.id]).length;
   const pct = total ? Math.round((doneCount/total)*100) : 0;
 
-  document.getElementById('today-title').textContent = view ? view.name : 'Today';
+  const titleEl = document.getElementById('today-title');
+  const labelEl = document.getElementById('today-view-label');
+  if (titleEl) titleEl.textContent = view ? view.name : 'Today';
+  if (labelEl) labelEl.textContent = view ? view.name : 'Schedule';
   document.getElementById('date-strip').innerHTML = `
     <div class="day">${days[today.getDay()]}</div>
     <div class="date">${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}</div>
@@ -894,6 +898,16 @@ function scheduleNotifications() {
 }
 
 // ─── INIT ─────────────────────────────────────────────────
+// Clear stale cache if views are missing or empty
+try {
+  const saved = localStorage.getItem('schedule-pwa-state');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    if (!parsed.views || !parsed.views.length || !parsed.views[0].events || !parsed.views[0].events.length) {
+      localStorage.removeItem('schedule-pwa-state');
+    }
+  }
+} catch(e) { localStorage.removeItem('schedule-pwa-state'); }
 loadState();
 document.body.classList.toggle('dark', state.darkMode);
 renderToday();
